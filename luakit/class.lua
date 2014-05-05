@@ -12,25 +12,72 @@ end
 
 _G["new"] = {}
 
+Object = {
+    copy = function()
+        -- todo: duplicate construction or share new code?
+    end,
+    instanceOf = function(self, prototype)
+        local proto = self.prototype
+        while proto ~= nil do
+            if proto == prototype then
+                return true
+            end
+            proto = proto.super
+        end
+        return false
+    end,
+    rawget = function(self, k)
+        return rawget(self.__data, k)
+    end,
+    rawset = function(self, k, v)
+        rawset(self.__data, k, v)
+    end
+}
+
+function instanceOf(instance, className)
+    if type(instance.instanceOf) == "function" then
+        return instance:instanceOf(_G[className])
+    end
+    return type(instance) == className
+end
+
 function class(className, superClass)
     return function(prototype)
+        prototype.className = className
         -- create constructor and place in global "new" object
-        new[className] = function(ctorArgs)
-            ctorArgs = ctorArgs or {}
+        new[className] = function(args)
             -- create the main reference object for the instance
-            local instance = {}
+            local instance = {
+                prototype = prototype
+            }
             -- create the object to hold the instance data
-            local data = ctorArgs or {}
+            args = args or {}
+            -- copy the args into the new data object
+            local data = {}
+            for k, v in pairs(args) do
+                rawset(data, k, v)
+            end
             -- create getter and setter accessors for instance
             setmetatable(instance, {
                 __index = function(self, k)
                     -- getter, use data object which will fall back to prototype object
+                    local getter = prototype.get
+                    if type(getter) == "function" then
+                        if k == "__data" then
+                            return data
+                        end
+                        local v = getter(self, k)
+                        if v ~= nil then
+                            return v
+                        end
+                    end
                     return data[k]
                 end,
                 __newindex = function(self, k, v)
-                    -- setter, check for onChange to give chance to cancel setting value
-                    if type(prototype.onChange) == "function" then
-                        local bool = prototype.onChange(self, k, v, rawget(data, k))
+                    -- setter, check for set to give chance to cancel setting value
+                    local setter = prototype.set
+                    if type(setter) == "function" then
+                        local bool = setter(self, k, v, rawget(data, k))
                         if bool == false then
                             return
                         end
@@ -42,15 +89,11 @@ function class(className, superClass)
             setmetatable(data, {
                 __index = prototype
             })
-            -- auto-set constructor args
-            for k, v in pairs(ctorArgs) do
-                instance[k] = v
-            end
             -- call constructor (will call inherited constructors if not defined in this class)
             local constructor = prototype.new
             if type(constructor) == "function" then
                 -- pass in any constructor params table for reference
-                constructor(instance, ctorArgs)
+                constructor(instance, args)
             end
             -- return the instance
             return instance
@@ -59,8 +102,16 @@ function class(className, superClass)
         _G[className] = prototype
         -- link prototype to superClass prototype if given
         if superClass then
+            -- link to super class
+            prototype.super = superClass
             setmetatable(prototype, {
                 __index = superClass
+            })
+        else
+            -- no super, link to Object
+            prototype.super = Object
+            setmetatable(prototype, {
+                __index = Object
             })
         end
     end
@@ -104,18 +155,11 @@ local function test()
     end)
 
     describe("Object-Oriented Classes", function ()
-        local logs = {}
-        local function log(msg)
-            logs[#logs + 1] = msg
-        end
-        local function clearLog()
-            logs = {}
-        end
-
         -- base class
         class("Base") {
             x = "baseX",
             y = "baseY",
+            z = {a = 1, b = 2},
             baseLocked = 1,
             new = function(self)
                 log("Base.new=" .. self.x)
@@ -123,7 +167,7 @@ local function test()
             baseMethod = function(self, arg)
                 log("Base.baseMethod=" .. arg)
             end,
-            onChange = function(self, k, v, ov)
+            set = function(self, k, v, ov)
                 -- allow any property change except baseLocked
                 if k == "baseLocked" then return false end
             end
@@ -133,6 +177,12 @@ local function test()
             local a = new.Base()
             expect(a.x).to.equal("baseX")
             expect(a.y).to.equal("baseY")
+            expect(a.className).to.equal("Base")
+            expect(a.prototype).to.equal(Base)
+            expect(a.prototype.super).to.equal(Object)
+            expect(a:instanceOf(Object)).to.equal(true)
+            expect(a:instanceOf(Base)).to.equal(true)
+            expect(instanceOf(a, "Base")).to.equal(true)
         end)
 
         it("base should create instance with custom values", function()
@@ -167,6 +217,13 @@ local function test()
             local b = new.Sub()
             expect(b.x).to.equal("subX")
             expect(b.y).to.equal("baseY")
+            expect(b.className).to.equal("Sub")
+            expect(b.prototype).to.equal(Sub)
+            expect(b.prototype.super).to.equal(Base)
+            expect(b:instanceOf(Object)).to.equal(true)
+            expect(b:instanceOf(Base)).to.equal(true)
+            expect(b:instanceOf(Sub)).to.equal(true)
+            expect(instanceOf(b, "Object")).to.equal(true)
         end)
 
         it("sub should be able to create instance with custom values", function()
@@ -212,20 +269,28 @@ local function test()
                 log("SubSub.subSubMethod=" .. arg1)
                 Sub.subMethod(self, arg1 .. "@subSub")
             end,
-            onChange = function(self, k, v, ov)
+            set = function(self, k, v, ov)
                 if k == "y" or k == "z" then return false end
-                return Sub.onChange(self, k, v, ov)
+                return Sub.set(self, k, v, ov)
             end
         }
 
         it("subSub should be able to call base constructors", function ()
             clearLog()
-            new.SubSub()
+            local c = new.SubSub()
             expect(logs).to.equal({
                 "SubSub.new=subSubX",
                 "Sub.new=subSubX",
                 "Base.new=subSubX"
             })
+            expect(c.className).to.equal("SubSub")
+            expect(c.prototype).to.equal(SubSub)
+            expect(c.prototype.super).to.equal(Sub)
+            expect(c.prototype.super.super).to.equal(Base)
+            expect(c:instanceOf(Object)).to.equal(true)
+            expect(c:instanceOf(Base)).to.equal(true)
+            expect(c:instanceOf(Sub)).to.equal(true)
+            expect(c:instanceOf(SubSub)).to.equal(true)
         end)
 
         it("subSub should be able to call base methods", function()

@@ -7,6 +7,16 @@ local results = {
     errors = {}
 }
 
+logs = {}
+
+function log(msg)
+    logs[#logs + 1] = msg
+end
+
+function clearLog()
+    logs = {}
+end
+
 local function report(title)
     console:br()
     local percentPassed = math.round((results.passing / results.total) * 100)
