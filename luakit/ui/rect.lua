@@ -1,6 +1,4 @@
 class("Rect", DisplayObject) {
-    width = display.actualContentWidth,
-    height = display.actualContentHeight,
     fillColor = new.Color {},
     create = function(self)
         self.view = display.newRect(self.x, self.y, self.width, self.height)

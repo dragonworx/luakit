@@ -1,25 +1,14 @@
-local function isTransitionKey(k)
-    return k == "x"
-        or k == "y"
-        or k == "width"
-        or k == "height"
-        or k == "rotation"
-        or k == "alpha"
-        or k == "xScale"
-        or k == "yScale"
-end
-
 class("DisplayObject", Component) {
     x = 0,
     y = 0,
-    width = display.actualContentWidth,
-    height = display.actualContentHeight,
+    width = display.contentWidth,
+    height = display.contentHeight,
     rotation = 0,
     xScale = 1,
     yScale = 1,
     alpha = 1,
     visible = true,
-    align = "center",
+    anchor = "topLeft",
     marginLeft = 0,
     marginTop = 0,
     view = nil,
@@ -29,7 +18,7 @@ class("DisplayObject", Component) {
         -- create view
         self:create()
         -- set properties from constructor args
-        self.align = self.align
+        self.anchor = self.anchor
         if args.x then self.x = args.x end
         if args.y then self.y = args.y end
         if args.rotation then self.rotation = args.rotation end
@@ -42,6 +31,21 @@ class("DisplayObject", Component) {
         if args.yScale then self.yScale = args.yScale end
         -- call super
         Component.new(self, args)
+    end,
+    swapView = function(self, view)
+        local ov = self.view
+        ov:removeSelf()
+        self.view = nil
+        self.view = view
+        self.anchor = self.anchor
+        view.rotation = ov.rotation
+        view.alpha = ov.alpha
+        view.width = ov.width; view.height = ov.height
+        view.visible = ov.visible
+        view.xScale = ov.xScale; view.yScale = ov.yScale
+        if instanceOf(self.parent, "Group") then
+            self.parent.view:insert(self.view, self.parent.resetTransform)
+        end
     end,
     addChild = function(self, child)
         if instanceOf(child, "Transition") then
@@ -58,15 +62,25 @@ class("DisplayObject", Component) {
             return {left = r.xMin, top = r.yMin, right = r.xMax, bottom = r.yMax}
         end
     end,
+    isTransitionKey = function(self, k)
+        return k == "x"
+            or k == "y"
+            or k == "width"
+            or k == "height"
+            or k == "rotation"
+            or k == "alpha"
+            or k == "xScale"
+            or k == "yScale"
+    end,
     set = function(self, k, v, ov)
         -- first check for transition
         local trans = self.transitions["*"] or self.transitions[k]
-        if trans and isTransitionKey(k) then
+        if trans and self:isTransitionKey(k) then
             trans:to(k, v)
             return
         end
         -- set properties on view from component
-        if k == "align" then
+        if k == "anchor" then
             local view = self.view
             if v == "center" then view.anchorX = 0.5; view.anchorY = 0.5; end
             if v == "topLeft" then view.anchorX = 0; view.anchorY = 0; end
@@ -122,5 +136,10 @@ class("DisplayObject", Component) {
         if k == "height" then
             self.view.height = v
         end
+    end,
+    dispose = function(self)
+        self.view:removeSelf()
+        self.view = nil
+        Component.dispose(self)
     end
 }

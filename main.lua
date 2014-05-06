@@ -1,28 +1,31 @@
 require("luakit.ui")
 
-local g = new.Screen {
-    id = "g",
+local group = new.Screen {
     new.Rect {
-        align = "topCenter",
-        x = display.centerX,
-        y = 0
+        fillColor = Color.red
     },
     new.Image {
+        id = "img",
+        anchor = "center",
         x = display.centerX,
         y = display.centerY,
-        id = "img",
         src = "test.png",
         new.Transition {delta = true, onComplete = function(self)
-        self.rotation = 45
+            self.rotation = 45
         end}
     },
     new.Transition {},
     new.Text {
+        id = "label",
         color = Color.blue,
-        text = "Hello world!",
-        align = "topLeft"
+        text = "Hello world!"
     }
 }
 
-g.img.rotation = 45
---g.height = 200
+group.img.rotation = 15
+group.width = 300
+group.height = 400
+group:setWithDelay(1000, "x", 100)
+group.label:setWithDelay(1000, "text", "hi there!")
+--group.label:setWithDelay(1000, "fontSize", 10)
+--group.img:setWithDelay(1000, "src", "me.jpg")

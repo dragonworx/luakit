@@ -1,15 +1,3 @@
-local function addChildrenToGroup(children, group)
-    for i = 1, #children do
-        local child = children[i]
-        if instanceOf(child, "DisplayObject") then
-            group:insert(child.view)
-            if instanceOf(child, "Group") == false then
-                addChildrenToGroup(child.children, group)
-            end
-        end
-    end
-end
-
 class("Group", DisplayObject) {
     resetTransform = false,
     addChild = function(self, child)

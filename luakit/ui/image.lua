@@ -5,5 +5,11 @@ class("Image", DisplayObject) {
         if self.view == nil then
             error("Image src not found - \"" .. self.src .. "\"")
         end
+    end,
+    set = function(self, k, v, ov)
+        if k == "src" then
+            self:swapView(display.newImage(v))
+        end
+        DisplayObject.set(self, k, v, ov)
     end
 }

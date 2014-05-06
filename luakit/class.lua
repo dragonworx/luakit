@@ -77,7 +77,8 @@ function class(className, superClass)
                     -- setter, check for set to give chance to cancel setting value
                     local setter = prototype.set
                     if type(setter) == "function" then
-                        local bool = setter(self, k, v, rawget(data, k))
+                        local ov = data[k]
+                        local bool = setter(self, k, v, ov)
                         if bool == false then
                             return
                         end
