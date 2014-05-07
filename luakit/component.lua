@@ -1,4 +1,6 @@
 class("Component") {
+    parent = nil,
+    children = nil,
     new = function(self, args)
         self.listeners = {}
         self.children = {}
@@ -7,6 +9,11 @@ class("Component") {
             if instanceOf(child, "Component") then
                 self:addChild(child)
             end
+        end
+    end,
+    get = function(self, k)
+        if type(k) == "number" then
+            return self.children[k]
         end
     end,
     addEventListener = function(self, eventType, listener, handlerName)

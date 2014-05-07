@@ -1,5 +1,4 @@
 class("Container", Group) {
-    anchor = "topLeft",
     create = function(self)
         self.view = display.newContainer(self.width, self.height)
         local innerView = display.newGroup()

@@ -18,17 +18,6 @@ class("Text", DisplayObject) {
     end,
     set = function(self, k, v, ov)
         if k == "text" then self.view.text = v end
-        if k == "font" or k == "fontSize" or k == "width" or k == "align" then
-            self:swapView(display.newText {
-                text = self.text,
-                x = self.x,
-                y = self.y,
-                width = self.width,
-                font = self.font,
-                fontSize = self.fontSize,
-                align = self.align
-            })
-        end
         DisplayObject.set(self, k, v, ov)
     end,
     get = function(self, k)

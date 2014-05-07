@@ -13,11 +13,18 @@ class("DisplayObject", Component) {
     marginTop = 0,
     view = nil,
     transitions = nil,
+    blendMode = "normal",
+    effect = nil,
     new = function(self, args)
         self:rawset("transitions", {})
         -- create view
         self:create()
         -- set properties from constructor args
+        self:init(args)
+        -- call super
+        Component.new(self, args)
+    end,
+    init = function(self, args)
         self.anchor = self.anchor
         if args.x then self.x = args.x end
         if args.y then self.y = args.y end
@@ -29,23 +36,29 @@ class("DisplayObject", Component) {
         if args.scale then self.scale = args.scale end
         if args.xScale then self.xScale = args.xScale end
         if args.yScale then self.yScale = args.yScale end
-        -- call super
-        Component.new(self, args)
+        if args.blendMode then self.blendMode = args.blendMode end
+        if args.effect then self.effect = args.effect end
     end,
     swapView = function(self, view)
+        -- replace old view with new one
         local ov = self.view
         ov:removeSelf()
         self.view = nil
+        -- update group reference
+        if instanceOf(self.parent, "Group") then
+            self.parent.innerView:insert(view, self.parent.resetTransform)
+        end
+        -- update geometry
         self.view = view
         self.anchor = self.anchor
+        view.x = ov.x; view.y = ov.y
         view.rotation = ov.rotation
         view.alpha = ov.alpha
+        view.blendMode = ov.blendMode
+        if self.effect then self:setEffect(self.effect) end
         view.width = ov.width; view.height = ov.height
         view.visible = ov.visible
         view.xScale = ov.xScale; view.yScale = ov.yScale
-        if instanceOf(self.parent, "Group") then
-            self.parent.view:insert(self.view, self.parent.resetTransform)
-        end
     end,
     addChild = function(self, child)
         if instanceOf(child, "Transition") then
@@ -130,11 +143,26 @@ class("DisplayObject", Component) {
             self.view.alpha = v
             return
         end
+        if k == "blendMode" then
+            self.view.blendMode = v
+        end
+        if k == "effect" then
+            self:setEffect(v)
+        end
         if k == "width" then
             self.view.width = v
         end
         if k == "height" then
             self.view.height = v
+        end
+    end,
+    setEffect = function(self, effect)
+        for fxk, fxv in pairs(effect) do
+            if fxk == "name" then
+                self.view.fill.effect = fxv
+            else
+                self.view.fill.effect[fxk] = fxv
+            end
         end
     end,
     dispose = function(self)

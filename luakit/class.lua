@@ -35,6 +35,9 @@ Object = {
 }
 
 function instanceOf(instance, className)
+    if instance == nil then
+        return false
+    end
     if type(instance.instanceOf) == "function" then
         return instance:instanceOf(_G[className])
     end

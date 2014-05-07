@@ -16,9 +16,13 @@ class("Transition", Component) {
     end,
     to = function(self, key, value)
         local k = self.key
-        if k == "*" then k = key end
+        if k == "*" then
+            k = key
+        end
         local v = value
-        if self.delta == true then v = self.parent.view[k] + value end
+        if self.delta == true then
+            v = self.parent.view[k] + value
+        end
         transition.to(self.parent.view, {
             [k] = v,
             time = self.time,
