@@ -38,10 +38,13 @@ function instanceOf(instance, className)
     if instance == nil then
         return false
     end
-    if type(instance.instanceOf) == "function" then
+    if type(instance) == className then
+        return true
+    end
+    if type(instance) == "table" and type(instance.instanceOf) == "function" then
         return instance:instanceOf(_G[className])
     end
-    return type(instance) == className
+    return false
 end
 
 function class(className, superClass)
@@ -49,10 +52,6 @@ function class(className, superClass)
         prototype.className = className
         -- create constructor and place in global "new" object
         new[className] = function(args)
-            -- create the main reference object for the instance
-            local instance = {
-                prototype = prototype
-            }
             -- create the object to hold the instance data
             args = args or {}
             -- copy the args into the new data object
@@ -60,15 +59,22 @@ function class(className, superClass)
             for k, v in pairs(args) do
                 rawset(data, k, v)
             end
+            -- create the main reference object for the instance
+            local instance = {
+                prototype = prototype,
+                __data = data,
+                __className = className
+            }
             -- create getter and setter accessors for instance
             setmetatable(instance, {
+                __mode = "v",
                 __index = function(self, k)
+                    if k == "_get" then
+                        return rawget(data, "_get")
+                    end
                     -- getter, use data object which will fall back to prototype object
                     local getter = prototype.get
                     if type(getter) == "function" then
-                        if k == "__data" then
-                            return data
-                        end
                         local v = getter(self, k)
                         if v ~= nil then
                             return v
@@ -77,6 +83,9 @@ function class(className, superClass)
                     return data[k]
                 end,
                 __newindex = function(self, k, v)
+                    if k == "_set" then
+                        return rawget(data, "_set")
+                    end
                     -- setter, check for set to give chance to cancel setting value
                     local setter = prototype.set
                     if type(setter) == "function" then
@@ -109,7 +118,7 @@ function class(className, superClass)
             -- link to super class
             prototype.super = superClass
             setmetatable(prototype, {
-                __index = superClass
+                __index = superClass,
             })
         else
             -- no super, link to Object

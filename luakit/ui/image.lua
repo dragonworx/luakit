@@ -10,6 +10,6 @@ class("Image", DisplayObject) {
         if k == "src" then
             self:swapView(display.newImage(v))
         end
-        DisplayObject.set(self, k, v, ov)
+        return DisplayObject.set(self, k, v, ov)
     end
 }

@@ -13,7 +13,9 @@ class("Group", DisplayObject) {
         end
     end,
     get = function(self, k)
-        if k == "innerView" then return self.view end
+        if k == "innerView" then
+            return self.view
+        end
         return DisplayObject.get(self, k)
     end
 }

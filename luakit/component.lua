@@ -4,23 +4,55 @@ class("Component") {
     new = function(self, args)
         self.listeners = {}
         self.children = {}
-        for i = 1, #args do
-            local child = args[i]
+        for key, child in pairs(args) do
             if instanceOf(child, "Component") then
                 self:addChild(child)
             end
+            if instanceOf(child, "function") then
+                self[key] = child
+            end
+        end
+        local id = self.id
+        if id ~= nil then
+            _G[id] = self
+        end
+    end,
+    init = function(self)
+        local init = self._init
+        if type(init) == "function" then
+            init(self)
         end
     end,
     get = function(self, k)
         if type(k) == "number" then
             return self.children[k]
         end
+        if k == "root" then
+            local parent = self.parent
+            while parent ~= nil do
+                if parent.parent == nil then
+                    return parent
+                end
+                parent = parent.parent
+            end
+        end
+        local getter = self._get
+        if type(getter) == "function" then
+            return getter(self, k)
+        end
+    end,
+    set = function(self, k, v, ov)
+        local setter = self._set
+        if type(setter) == "function" then
+            return setter(self, k, v, ov)
+        end
     end,
     addEventListener = function(self, eventType, listener, handlerName)
-        local bindings = self.listeners[eventType]
+        local listeners = self.listeners
+        local bindings = listeners[eventType]
         if bindings == nil then
             bindings = {}
-            self.listeners[eventType] = bindings
+            listeners[eventType] = bindings
         end
         bindings[#bindings + 1] = {listener = listener, handlerName = handlerName}
     end,
@@ -48,19 +80,31 @@ class("Component") {
                 end
             end
         end
+        self:onEvent(eventType, data)
     end,
-    addChild = function(self, child)
-        self.children[#self.children + 1] = child
-        child.parent = self
-        if child.id then
-            self[child.id] = child
+    onEvent = function(self, eventType, data)
+        local parent = self.parent
+        if parent ~= nil then
+            parent:onEvent(eventType, data)
         end
     end,
+    addChild = function(self, child)
+        local children = self.children
+        children[#children + 1] = child
+        child.parent = self
+        local id = child.id
+        if id then
+            self[id] = child
+        end
+        child:init()
+    end,
     removeChild = function(self, child)
-        table.remove(self.children, table.indexOf(self.children, child))
+        local children = self.children
+        table.remove(children, table.indexOf(children, child))
         child.parent = nil
-        if child.id then
-            self[child.id] = nil
+        local id = child.id
+        if id then
+            self[id] = nil
         end
     end,
     setWithDelay = function(self, delay, k, v)
@@ -70,18 +114,20 @@ class("Component") {
     end,
     dispose = function(self)
         -- remove listeners
-        for eventType, bindings in pairs(self.listeners) do
+        local listeners = self.listeners
+        for eventType, bindings in pairs(listeners) do
             for i = 1, #bindings do
                 local binding = bindings[i]
                 binding.listener = nil
                 table.remove(bindings, i)
             end
-            self.listeners[eventType] = nil
+            listeners[eventType] = nil
         end
         -- remove children
-        for i = 1, #self.children do
-            self.children[i]:dispose()
-            self.children[i] = nil
+        local children = self.children
+        for i = 1, #children do
+            children[i]:dispose()
+            children[i] = nil
         end
         -- dettach parent
         self.parent = nil

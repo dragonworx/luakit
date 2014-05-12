@@ -1,54 +1,31 @@
 require("luakit.ui")
+require("luakit.com")
 
-local group = new.Screen {
-    new.Rect {
-        fillColor = Color.red,
-        fill = {
-            type = "gradient",
-            color1 = Color.green:toArray(),
-            color2 = Color.red:toArray(),
-            direction = "down"
-        },
-        new.Transition {}
-    },
-    new.Image {
-        id = "img",
-        anchor = "center",
-        x = display.centerX,
-        y = display.centerY,
-        src = "test.png",
-        new.Transition {delta = true, onComplete = function(self)
-            self.rotation = 45
-        end},
-        blendMode = "screen",
-        effect = {
-            name = "filter.swirl",
-            intensity = 0.4
+new.Application {
+    new.PinLayout {
+        new.Image {
+            new.Transition {time = 250},
+            anchor = "center",
+            layout = {
+                x = 0.5,
+                y = 0.5,
+                width = 1,
+                height = 1
+            },
+            src = "debug.png",
+            width = 320,
+            height = 480 - display.statusBarHeight
         }
     },
-    new.Transition {},
     new.Text {
-        id = "label",
-        color = Color.blue,
-        text = "Hello world!",
-        new.Transition {}
+        id = "txt"
     },
-    new.Circle {
-        id = "circle",
-        fillColor = Color.green,
-        x = 0, y = 0,
-        radius = 100,
-        new.Transition (),
-        strokeWidth = 1,
-        strokeColor = Color.red:withAlpha(0.1)
-    }
 }
+timer.performWithDelay(100, function()
+    local kb = collectgarbage("count")
+    txt.text = kb
+end, 0)
 
-group.img.rotation = 15
-group.width = 300
-group.height = 400
-group:setWithDelay(1000, "x", 100)
-group.label:setWithDelay(1000, "text", "hi there!")
-group.label:setWithDelay(1000, "rotation", 50)
-group.img:setWithDelay(1000, "src", "me.jpg")
-group.circle:setWithDelay(1000, "alpha", 0)
+Runtime:addEventListener("tap", function(e)
+    collectgarbage()
+end)

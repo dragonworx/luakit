@@ -2,6 +2,7 @@ display.centerX = display.contentWidth * 0.5
 display.centerY = display.contentHeight * 0.5
 
 require("luakit.core")
+
 require("luakit.ui.color")
 require("luakit.ui.transition")
 require("luakit.ui.displayobject")

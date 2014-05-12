@@ -15,17 +15,12 @@ class("DisplayObject", Component) {
     transitions = nil,
     blendMode = "normal",
     effect = nil,
+    enableTransitions = false,
     new = function(self, args)
         self:rawset("transitions", {})
         -- create view
         self:create()
-        -- set properties from constructor args
-        self:init(args)
-        -- call super
-        Component.new(self, args)
-    end,
-    init = function(self, args)
-        self.anchor = self.anchor
+        -- init from args
         if args.x then self.x = args.x end
         if args.y then self.y = args.y end
         if args.rotation then self.rotation = args.rotation end
@@ -38,6 +33,9 @@ class("DisplayObject", Component) {
         if args.yScale then self.yScale = args.yScale end
         if args.blendMode then self.blendMode = args.blendMode end
         if args.effect then self.effect = args.effect end
+        self.anchor = self.anchor
+        -- call super
+        Component.new(self, args)
     end,
     swapView = function(self, view)
         -- replace old view with new one
@@ -45,8 +43,9 @@ class("DisplayObject", Component) {
         ov:removeSelf()
         self.view = nil
         -- update group reference
-        if instanceOf(self.parent, "Group") then
-            self.parent.innerView:insert(view, self.parent.resetTransform)
+        local parent = self.parent
+        if instanceOf(parent, "Group") then
+            parent.innerView:insert(view, parent.resetTransform)
         end
         -- update geometry
         self.view = view
@@ -55,10 +54,27 @@ class("DisplayObject", Component) {
         view.rotation = ov.rotation
         view.alpha = ov.alpha
         view.blendMode = ov.blendMode
-        if self.effect then self:setEffect(self.effect) end
+        local effect = self.effect
+        if effect then self:setEffect(effect) end
         view.width = ov.width; view.height = ov.height
         view.visible = ov.visible
         view.xScale = ov.xScale; view.yScale = ov.yScale
+    end,
+    init = function(self)
+        self:doLayout()
+    end,
+    doLayout = function(self)
+        self:performLayout()
+        local children = self.children
+        for i = 1, #children do
+            local child = children[i]
+            local doLayout = child.doLayout
+            if type(doLayout) == "function" then
+                doLayout(child)
+            end
+        end
+    end,
+    performLayout = function(self)
     end,
     addChild = function(self, child)
         if instanceOf(child, "Transition") then
@@ -74,6 +90,7 @@ class("DisplayObject", Component) {
             local r = self.view.contentBounds
             return {left = r.xMin, top = r.yMin, right = r.xMax, bottom = r.yMax}
         end
+        return Component.get(self, k)
     end,
     isTransitionKey = function(self, k)
         return k == "x"
@@ -86,15 +103,31 @@ class("DisplayObject", Component) {
             or k == "yScale"
     end,
     set = function(self, k, v, ov)
-        -- first check for transition
-        local trans = self.transitions["*"] or self.transitions[k]
-        if trans and self:isTransitionKey(k) then
-            trans:to(k, v)
+        Component.set(self, k, v, ov)
+        if k == "enableTransitions" then
+            local children = self.children
+            for i = 1, #children do
+                children[i].enableTransitions = v
+            end
             return
         end
+        -- first check for transition
+        if self.enableTransitions == true then
+            local transitions = self.transitions
+            local trans = transitions["*"] or transitions[k]
+            if trans and self:isTransitionKey(k) then
+                trans:to(k, v)
+                return
+            end
+        end
         -- set properties on view from component
+        local marginTop = self.marginTop
+        local marginLeft = self.marginLeft
+        local view = self.view
+        local x = self.x
+        local y = self.y
         if k == "anchor" then
-            local view = self.view
+            local view = view
             if v == "center" then view.anchorX = 0.5; view.anchorY = 0.5; end
             if v == "topLeft" then view.anchorX = 0; view.anchorY = 0; end
             if v == "topCenter" then view.anchorX = 0.5; view.anchorY = 0; end
@@ -104,64 +137,66 @@ class("DisplayObject", Component) {
             if v == "bottomRight" then view.anchorX = 1; view.anchorY = 1; end
             if v == "leftCenter" then view.anchorX = 0; view.anchorY = 0.5; end
             if v == "rightCenter" then view.anchorX = 1; view.anchorY = 0.5; end
-            view.x = self.x + self.marginLeft
-            view.y = self.y + self.marginTop
+            view.x = x + marginLeft
+            view.y = y + marginTop
             return
         end
-        local marginLeft = self.marginLeft
-        local marginTop = self.marginTop
+        local marginLeft = marginLeft
+        local marginTop = marginTop
         if k == "marginLeft" then
             marginLeft = v
-            k = "x"; v = self.x
+            k = "x"; v = x
         end
         if k == "marginTop" then
             marginTop = v
-            k = "y"; v = self.y
+            k = "y"; v = y
         end
         if k == "x" then
-            self.view.x = v + marginLeft
+            view.x = v + marginLeft
         end
         if k == "y" then
-            self.view.y = v + marginTop
+            view.y = v + marginTop
         end
         if k == "rotation" then
-            self.view.rotation = v
+            view.rotation = v
             return
         end
         if k == "scale" then
-            self.view.xScale = v
-            self.view.yScale = v
+            view.xScale = v
+            view.yScale = v
             return
         end
         if k == "xScale" then
-            self.view.xScale = v
+            view.xScale = v
         end
         if k == "yScale" then
-            self.view.yScale = v
+            view.yScale = v
         end
         if k == "alpha" then
-            self.view.alpha = v
+            view.alpha = v
             return
         end
         if k == "blendMode" then
-            self.view.blendMode = v
+            view.blendMode = v
         end
         if k == "effect" then
             self:setEffect(v)
         end
         if k == "width" then
-            self.view.width = v
+            view.width = v
         end
         if k == "height" then
-            self.view.height = v
+            view.height = v
         end
+        return Component.set(self, k, v, ov)
     end,
     setEffect = function(self, effect)
+        local view = self.view
         for fxk, fxv in pairs(effect) do
             if fxk == "name" then
-                self.view.fill.effect = fxv
+                view.fill.effect = fxv
             else
-                self.view.fill.effect[fxk] = fxv
+                view.fill.effect[fxk] = fxv
             end
         end
     end,

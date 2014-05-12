@@ -18,9 +18,10 @@ class("Text", DisplayObject) {
     end,
     set = function(self, k, v, ov)
         if k == "text" then self.view.text = v end
-        DisplayObject.set(self, k, v, ov)
+        return DisplayObject.set(self, k, v, ov)
     end,
     get = function(self, k)
         if k == "width" and self:rawget("width") == 0 then return nil end
+        return DisplayObject.get(self, k)
     end
 }

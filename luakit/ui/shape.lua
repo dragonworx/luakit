@@ -3,16 +3,16 @@ class("Shape", DisplayObject) {
     strokeColor = new.Color {},
     strokeWidth = 0,
     fill = nil,
+    new = function(self, args)
+        DisplayObject.new(self, args)
+        if args.fill then self.fill = args.fill end
+    end,
     create = function(self)
         local fillColor = self.fillColor
         local strokeColor = self.strokeColor
         self.view:setFillColor(fillColor.r, fillColor.g, fillColor.b, fillColor.a)
         self.view:setStrokeColor(strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a)
         self.view.strokeWidth = self.strokeWidth
-    end,
-    init = function(self, args)
-        if args.fill then self.fill = args.fill end
-        DisplayObject.init(self, args)
     end,
     set = function(self, k, v, ov)
         if k == "strokeColor" then
@@ -27,7 +27,7 @@ class("Shape", DisplayObject) {
         if k == "fill" then
             self.view.fill = v
         end
-        DisplayObject.set(self, k, v, ov)
+        return DisplayObject.set(self, k, v, ov)
     end,
     swapView = function(self, view)
         local ov = self.view

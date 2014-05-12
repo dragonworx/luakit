@@ -8,6 +8,6 @@ class("RoundedRect", Shape) {
         if k == "radius" then
             self.view.path.radius = v
         end
-        Shape.set(self, k, v, ov)
+        return Shape.set(self, k, v, ov)
     end
 }
