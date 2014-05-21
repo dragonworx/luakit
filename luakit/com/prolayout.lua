@@ -1,4 +1,4 @@
-class("PinLayout", Layout) {
+class("ProLayout", Layout) {
     performLayout = function(self)
         local children = self.children
         local bounds = self.parent.bounds

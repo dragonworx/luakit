@@ -14,8 +14,10 @@ class("DisplayObject", Component) {
     view = nil,
     transitions = nil,
     blendMode = "normal",
-    effect = nil,
+    filter = nil,
     enableTransitions = false,
+    enableTouch = false,
+    takeFocus = true,
     new = function(self, args)
         self:rawset("transitions", {})
         -- create view
@@ -32,7 +34,8 @@ class("DisplayObject", Component) {
         if args.xScale then self.xScale = args.xScale end
         if args.yScale then self.yScale = args.yScale end
         if args.blendMode then self.blendMode = args.blendMode end
-        if args.effect then self.effect = args.effect end
+        if args.filter then self.filter = args.filter end
+        if args.enableTouch then self.enableTouch = args.enableTouch end
         self.anchor = self.anchor
         -- call super
         Component.new(self, args)
@@ -54,8 +57,8 @@ class("DisplayObject", Component) {
         view.rotation = ov.rotation
         view.alpha = ov.alpha
         view.blendMode = ov.blendMode
-        local effect = self.effect
-        if effect then self:setEffect(effect) end
+        local filter = self.filter
+        if filter then self:applyFilter(filter) end
         view.width = ov.width; view.height = ov.height
         view.visible = ov.visible
         view.xScale = ov.xScale; view.yScale = ov.yScale
@@ -107,18 +110,40 @@ class("DisplayObject", Component) {
         if k == "enableTransitions" then
             local children = self.children
             for i = 1, #children do
-                children[i].enableTransitions = v
+                local child = children[i]
+                if instanceOf(child, "DisplayObject") then
+                    children[i].enableTransitions = v
+                end
             end
             return
         end
-        -- first check for transition
+        -- first check for transition, and fire
         if self.enableTransitions == true then
             local transitions = self.transitions
             local trans = transitions["*"] or transitions[k]
             if trans and self:isTransitionKey(k) then
                 trans:to(k, v)
-                return
+                if trans.delta == true then
+                    self:rawset(k, self[k] + v)
+                    return false
+                else
+                    return
+                end
             end
+        end
+        if k == "enableTouch" then
+            if v == true then
+                self:rawset("__onTouch", function(event)
+                    return self:onTouch(event)
+                end)
+                self.view:addEventListener("touch", self:rawget("__onTouch"))
+            else
+                local onTouch = self:rawget("__onTouch")
+                if onTouch ~= nil then
+                    self.view:removeEventListener("touch", onTouch)
+                end
+            end
+            return
         end
         -- set properties on view from component
         local marginTop = self.marginTop
@@ -179,8 +204,8 @@ class("DisplayObject", Component) {
         if k == "blendMode" then
             view.blendMode = v
         end
-        if k == "effect" then
-            self:setEffect(v)
+        if k == "filter" then
+            self:applyFilter(v)
         end
         if k == "width" then
             view.width = v
@@ -190,19 +215,58 @@ class("DisplayObject", Component) {
         end
         return Component.set(self, k, v, ov)
     end,
-    setEffect = function(self, effect)
-        local view = self.view
-        for fxk, fxv in pairs(effect) do
-            if fxk == "name" then
-                view.fill.effect = fxv
-            else
-                view.fill.effect[fxk] = fxv
+    onTouch = function(self, event)
+        if event.phase == "began" then
+            if self.takeFocus == true then
+                display.getCurrentStage():setFocus(self.view)
             end
+            local gesture = new.Gesture { target = self }
+            self:rawset("__gesture", gesture)
+            gesture:onStart(event)
+            self:onTouchDown(event, gesture)
         end
+        if event.phase == "moved" then
+            local gesture = self:rawget("__gesture")
+            gesture:onMove(event)
+            self:onTouchMove(event, gesture)
+        end
+        if event.phase == "ended" then
+            local gesture = self:rawget("__gesture")
+            if gesture then
+                gesture:onEnd(event)
+            end
+            self:onTouchUp(event, gesture)
+            if self.takeFocus == true then
+                display.getCurrentStage():setFocus(nil)
+            end
+            self:rawset("__gesture", nil)
+        end
+        if self.takeFocus == true then
+            return true
+        end
+    end,
+    onTouchDown = function(self, event, gesture)
+
+    end,
+    onTouchMove = function(self, event, gesture)
+
+    end,
+    onTouchUp = function(self, event, gesture)
+
+    end,
+    applyFilter = function(self, filter)
+        filter:applyTo(self.view)
+    end,
+    setFilter = function(self, key, value, trans)
+        self.filter:setValue(key, value, self.view, trans)
     end,
     dispose = function(self)
         self.view:removeSelf()
         self.view = nil
+        -- remove touch listener
+        if self:rawget("__onTouch") ~= nil then
+            self:rawset("__onTouch", nil)
+        end
         Component.dispose(self)
     end
 }

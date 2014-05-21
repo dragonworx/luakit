@@ -2,14 +2,14 @@ class("Component") {
     parent = nil,
     children = nil,
     new = function(self, args)
-        self.listeners = {}
-        self.children = {}
+        self:rawset("listeners", {})
+        self:rawset("children", {})
         for key, child in pairs(args) do
             if instanceOf(child, "Component") then
                 self:addChild(child)
             end
             if instanceOf(child, "function") then
-                self[key] = child
+                self:rawset(key, child)
             end
         end
         local id = self.id

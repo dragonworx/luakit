@@ -1,31 +1,43 @@
 require("luakit.ui")
 require("luakit.com")
 
-new.Application {
-    new.PinLayout {
-        new.Image {
-            new.Transition {time = 250},
-            anchor = "center",
-            layout = {
-                x = 0.5,
-                y = 0.5,
-                width = 1,
-                height = 1
-            },
-            src = "debug.png",
-            width = 320,
-            height = 480 - display.statusBarHeight
-        }
-    },
-    new.Text {
-        id = "txt"
-    },
-}
-timer.performWithDelay(100, function()
-    local kb = collectgarbage("count")
-    txt.text = kb
-end, 0)
+display.setDrawMode("forceRender")
 
-Runtime:addEventListener("tap", function(e)
-    collectgarbage()
-end)
+new.Application {
+    id = "app",
+    new.Image {
+        id = "img",
+        src = "test.png",
+        filter = new.Filter {
+            "swirl",
+            intensity = 0
+        },
+        _set = function(self, k, v)
+            if k == "fx" then
+                self:setFilter("intensity", v, {time = 1000})
+                self.alpha = 0
+            end
+        end,
+        new.Transition(),
+        enableTouch = true,
+        onTouchUp = function(self)
+            self.fx = 5
+        end
+    },
+    new.Image {
+        width = 200,
+        height = 200,
+        anchor = "center",
+        blendMode = "screen",
+        src = "test.png",
+        enableTouch = true,
+        onTouchUp = function(self, event, gesture)
+            self.x = gesture.delta.x
+            self.y = gesture.delta.y
+            self.rotation = gesture.angle
+        end,
+        new.Transition {key = "x", delta = true},
+        new.Transition {key = "y", delta = true},
+        new.Transition {key = "rotation"}
+    }
+}

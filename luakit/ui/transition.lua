@@ -20,10 +20,16 @@ class("Transition", Component) {
             k = key
         end
         local v = value
-        if self.delta == true then
-            v = self.parent.view[k] + value
+        local object = self.parent.view
+        local i, j = string.find(key, "filter.")
+        if i == 1 then
+            object = object.fill.effect
+            k = string.gsub(key, "filter.", "")
         end
-        transition.to(self.parent.view, {
+        if self.delta == true then
+            v = object[k] + value
+        end
+        transition.to(object, {
             [k] = v,
             time = self.time,
             transition = easing[self.easing],
