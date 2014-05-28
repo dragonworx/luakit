@@ -41,7 +41,7 @@ class("Filter") {
             if type(obj[k]) == "number" then
                 obj[k] = value
                 if isTransition then
-                    transition.to(viewObj, {time = trans.time, [k] = value})
+                    transition.to(viewObj, {time = trans.time, [k] = value, onComplete = trans.onComplete})
                 else
                     viewObj[k] = value
                 end

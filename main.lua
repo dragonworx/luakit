@@ -130,10 +130,11 @@ function newImage(filter, dec)
         _set = function(self, k, v, ov)
             if k == "fx" then
                 for i, morph in ipairs(filterMorphs[self.filter.effect]) do
-                    self:setFilter(morph[1], morph[2], {time = 1000})
+                    self:setFilter(morph[1], morph[2], {time = 1000, onComplete = function()
+                        self.alpha = 0
+                        self.isAnimating = true
+                    end})
                 end
-                self:setWithDelay(1000, "alpha", 0)
-                self.isAnimating = true
             end
         end,
         new.Transition {key = "alpha", time = 300, transition = easing.outQuart, onComplete = function(self)
