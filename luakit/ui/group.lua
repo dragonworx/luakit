@@ -7,7 +7,7 @@ class("Group", DisplayObject) {
         end
     end,
     removeChild = function(self, child)
-        DisplayObject.addChild(self, child)
+        DisplayObject.removeChild(self, child)
         if instanceOf(child, "DisplayObject") then
             self.innerView:remove(child.view)
         end

@@ -15,7 +15,6 @@ class("DisplayObject", Component) {
     transitions = nil,
     blendMode = "normal",
     filter = nil,
-    enableTransitions = false,
     enableTouch = false,
     takeFocus = true,
     new = function(self, args)
@@ -65,6 +64,7 @@ class("DisplayObject", Component) {
     end,
     init = function(self)
         self:doLayout()
+        Component.init(self)
     end,
     doLayout = function(self)
         self:performLayout()
@@ -106,29 +106,18 @@ class("DisplayObject", Component) {
             or k == "yScale"
     end,
     set = function(self, k, v, ov)
-        Component.set(self, k, v, ov)
-        if k == "enableTransitions" then
-            local children = self.children
-            for i = 1, #children do
-                local child = children[i]
-                if instanceOf(child, "DisplayObject") then
-                    children[i].enableTransitions = v
-                end
-            end
-            return
-        end
         -- first check for transition, and fire
-        if self.enableTransitions == true then
-            local transitions = self.transitions
-            local trans = transitions["*"] or transitions[k]
-            if trans and self:isTransitionKey(k) then
-                trans:to(k, v)
-                if trans.delta == true then
-                    self:rawset(k, self[k] + v)
-                    return false
-                else
-                    return
-                end
+        local transitions = self.transitions
+        local trans = transitions["*"] or transitions[k]
+        if trans and self:isTransitionKey(k) then
+            trans:to(k, v)
+            if trans.delta == true then
+                -- override setting instance property, make it a delta
+                self:rawset(k, self[k] + v)
+                -- don't continue to set instance value, it's done
+                return false
+            else
+                return
             end
         end
         if k == "enableTouch" then
@@ -166,21 +155,29 @@ class("DisplayObject", Component) {
             view.y = y + marginTop
             return
         end
+        if k == "visible" then
+            view.isVisible = v
+            return
+        end
         local marginLeft = marginLeft
         local marginTop = marginTop
         if k == "marginLeft" then
             marginLeft = v
             k = "x"; v = x
+            return
         end
         if k == "marginTop" then
             marginTop = v
             k = "y"; v = y
+            return
         end
         if k == "x" then
             view.x = v + marginLeft
+            return
         end
         if k == "y" then
             view.y = v + marginTop
+            return
         end
         if k == "rotation" then
             view.rotation = v
@@ -193,9 +190,11 @@ class("DisplayObject", Component) {
         end
         if k == "xScale" then
             view.xScale = v
+            return
         end
         if k == "yScale" then
             view.yScale = v
+            return
         end
         if k == "alpha" then
             view.alpha = v
@@ -203,15 +202,19 @@ class("DisplayObject", Component) {
         end
         if k == "blendMode" then
             view.blendMode = v
+            return
         end
         if k == "filter" then
             self:applyFilter(v)
+            return
         end
         if k == "width" then
             view.width = v
+            return
         end
         if k == "height" then
             view.height = v
+            return
         end
         return Component.set(self, k, v, ov)
     end,
@@ -261,7 +264,8 @@ class("DisplayObject", Component) {
         self.filter:setValue(key, value, self.view, trans)
     end,
     dispose = function(self)
-        self.view:removeSelf()
+        local view = self:rawget("view")
+        view:removeSelf()
         self.view = nil
         -- remove touch listener
         if self:rawget("__onTouch") ~= nil then

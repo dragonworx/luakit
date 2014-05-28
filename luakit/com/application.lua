@@ -12,23 +12,15 @@ class("Application", Group) {
         self:init()
     end,
     init = function(self)
+        Runtime:addEventListener("touch", function(event)
+            self:onTouch(event)
+        end)
         Runtime:addEventListener("orientation", function(e)
             display.centerX = display.contentWidth * 0.5
             display.centerY = display.contentHeight * 0.5
             self:doLayout()
         end)
         Group.init(self)
-        self.enableTransitions = true
-        -- setup touch events
-        Runtime:addEventListener("touch", function(event)
-            self:onTouch(event)
-        end)
-    end,
-    set = function(self, k, v, ov)
-        if k == "enableTouch" then
-            return false
-        end
-        Group.set(self, k, v, ov)
     end,
     get = function(self, k)
         if k == "bounds" then

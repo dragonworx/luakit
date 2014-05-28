@@ -27,6 +27,7 @@ class("Filter") {
                 self.properties[k] = v
             end
         end
+        self.defaults = clone(self.properties)
     end,
     applyTo = function(self, view)
         view.fill.effect = "filter." .. self.effect
@@ -48,5 +49,8 @@ class("Filter") {
             obj = obj[k]
             viewObj = viewObj[k]
         end
+    end,
+    reset = function(self)
+        self.properties = clone(self.defaults)
     end
 }

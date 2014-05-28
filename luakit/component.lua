@@ -36,13 +36,16 @@ class("Component") {
                 parent = parent.parent
             end
         end
+        if k == "index" then
+            return table.indexOf(self.parent.children, self)
+        end
         local getter = self._get
         if type(getter) == "function" then
             return getter(self, k)
         end
     end,
     set = function(self, k, v, ov)
-        local setter = self._set
+        local setter = self:rawget("_set")
         if type(setter) == "function" then
             return setter(self, k, v, ov)
         end
@@ -123,14 +126,14 @@ class("Component") {
             end
             listeners[eventType] = nil
         end
+        -- dettach from parent
+        self.parent:removeChild(self)
         -- remove children
         local children = self.children
         for i = 1, #children do
             children[i]:dispose()
             children[i] = nil
         end
-        -- dettach parent
-        self.parent = nil
     end
 }
 
